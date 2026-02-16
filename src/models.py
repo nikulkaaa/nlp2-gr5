@@ -42,7 +42,7 @@ def evaluate_model(
     model: LogisticRegression | LinearSVC,
     X_test: np.ndarray,
     y_test: PandasSeriesAny | np.ndarray,
-) -> Tuple [np.ndarray, dict[str, float]]:
+) -> Tuple[np.ndarray, dict[str, Any]]:
     """
     Evaluate the performance of a trained model on the test dataset.
     
@@ -52,9 +52,11 @@ def evaluate_model(
     :return: A dictionary containing the accuracy and macro F1 score of the model on the test dataset.
     """
     y_pred = model.predict(X_test)
-    metrics = {
-        "accuracy": accuracy_score(y_test, y_pred),
-        "macro_f1": f1_score(y_test, y_pred, average="macro"),
+    # Convert NumPy scalars/arrays into plain Python types so metrics can be JSON-serialized.
+    metrics: dict[str, Any] = {
+        "accuracy": float(accuracy_score(y_test, y_pred)),
+        "macro_f1": float(f1_score(y_test, y_pred, average="macro")),
+        "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
     }
     return y_pred, metrics
 
@@ -107,6 +109,9 @@ def collect_misclassified_samples(
                              Defaults to False to avoid writing huge TF-IDF arrays to CSV.
     :return: A DataFrame containing misclassified samples with labels and optional text context.
     """
+    # Label map for legibility
+    label_map = {1: "World", 2: "Sports", 3: "Business", 4: "Sci/Tech"}
+
     # Predict labels for the test set
     y_pred = model.predict(X_test)
 
@@ -135,8 +140,8 @@ def collect_misclassified_samples(
     result = pd.DataFrame(
         {
             "pos": misclassified_indices,
-            "true_label": y_true[misclassified_indices],
-            "predicted_label": y_pred[misclassified_indices],
+            "true_label": [label_map[label] for label in y_true[misclassified_indices]],
+            "predicted_label": [label_map[label] for label in y_pred[misclassified_indices]],
         }
     )
 

@@ -1,11 +1,11 @@
 pos,true_label,predicted_label,row_index,description
-1296,3,1,1296,"Israel would start liquidating the Erez industrial zone in the northern Gaza Strip before launching the first stage of the disengagement plan in March 2005,local newspaper Ha #39;aretz reported on Tuesday."
-2200,4,1,2200,"The ArtBots show in New York this past weekend proved that robots can wax artistic, too -- or at least carry out the instructions of their artistic creators. Cyrus Farivar reports from New York."
-2854,4,3,2854,Tesco is rolling out radio barcode technology across its 98 Tesco Extra stores to track high-value items between its internal distribution centres and its outlets.
-3797,3,1,3797,Public transport grinds to a halt in the Netherlands as workers strike against the government's planned welfare cuts.
-3856,1,3,3856,"WASHINGTON - Shoppers got their buying groove back last month, propelling sales at the nation's retailers by a strong 1.5 percent. It was the best showing since March..."
-5426,3,1,5426,"The outside adviser who helped draft the 1995 employment agreement for the president of Walt Disney, Michael S. Ovitz, testified on Tuesday that he had reservations "
-6496,4,2,6496,Global warming is increasingly rendering Inuit and other Arctic peoples at a loss for words. They simply do not have names in their languages for the temperate species flocking up from the south.
-6503,3,4,6503,Some taxpayers have been dusting off an old Internal Revenue Service ruling about signing bonuses in baseball contracts and using it to justify skipping payroll taxes and income-tax withholding on signing bonuses generally.
-6905,3,4,6905,"CHINA #39;S largest manufacturer of personal computers Lenovo Group has confirmed it is in acquisition negotiations with a major information technology company, widely believed to be IBM."
-7080,3,4,7080,Huge cost overruns. Tunnel leaks. Multimillion-dollar lawsuits. Big trouble for the companies managing Boston's Big Dig? Not really.
+1296,Business,World,1296,"Israel would start liquidating the Erez industrial zone in the northern Gaza Strip before launching the first stage of the disengagement plan in March 2005,local newspaper Ha #39;aretz reported on Tuesday."
+2173,World,Sports,2173,The Indian Board re-opens the bidding for TV rights after Australian threaten to cancel their tour.
+2847,World,Business,2847,"Efforts to forge the world's largest free trade zone between the European Union and South America's Mercosur economic bloc are unlikely to be concluded by an Oct. 31 deadline, the EU said Thursday, with both sides declaring each other's trade offers insufficient."
+3805,World,Sports,3805,"ST. LOUIS - The Houston Astros put their hopes in a pitcher untested in the postseason when they give Pete Munro the ball to start Game 2 of the NL Championship series on Thursday, one night after dropping the opener to the St..."
+3882,World,Business,3882,"While pilots still feel in command in the air, they increasingly are feeling slighted on the ground, as airlines extract salary and benefits concessions from them."
+5402,Sci/Tech,World,5402,Six nations planning to build the world's biggest nuclear fusion reactor fail to agree where to site the facility.
+6496,Sci/Tech,Sports,6496,Global warming is increasingly rendering Inuit and other Arctic peoples at a loss for words. They simply do not have names in their languages for the temperate species flocking up from the south.
+6503,Business,Sci/Tech,6503,Some taxpayers have been dusting off an old Internal Revenue Service ruling about signing bonuses in baseball contracts and using it to justify skipping payroll taxes and income-tax withholding on signing bonuses generally.
+6898,Sci/Tech,Sports,6898,"Remember Neo #39;s dilemma in The Matrix? Morpheus offers him two views of reality, extending a blue pill in his left hand and a red one in his right."
+7077,World,Sports,7077,AFP - Pakistan was still struggling at lunch on the second day of their four-day tour match against Western Australia here despite claiming two wickets in the morning session.
