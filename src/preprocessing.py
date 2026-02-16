@@ -31,8 +31,9 @@ def preprocess_data(df):
 def feature_engineering_tfidf(
     dataset: pd.DataFrame,
     column_name: str,
-    max_features: int = 1000
-) -> np.ndarray:
+    max_features: int = 1000,
+    vectorizer: None | TfidfVectorizer = None
+) -> np.ndarray | tuple[np.ndarray, TfidfVectorizer]:
     """
     Converts text data from a dataset column into numerical representations.
 
@@ -41,12 +42,14 @@ def feature_engineering_tfidf(
     :param max_features: The maximum number of features to extract using TF-IDF.
     :return: A NumPy array containing the TF-IDF features.
     """
-    text_data = dataset[column_name].apply(
-        lambda x: " ".join(x) if isinstance(x, list) else x
-    ).values
-
-    # Use TF-IDF to transform the entire column
-    tfidf_vectorizer = TfidfVectorizer(max_features=max_features)
-    X = tfidf_vectorizer.fit_transform(text_data).toarray()
-    return X
+    text_data = dataset[column_name].values
+    
+    if vectorizer is None:
+        vectorizer = TfidfVectorizer(max_features=max_features)
+        X = vectorizer.fit_transform(text_data).toarray()
+        return X, vectorizer
+    else:
+        # Subsequent calls: just transform using existing vectorizer
+        X = vectorizer.transform(text_data).toarray()
+        return X
 
