@@ -11,12 +11,6 @@ cd nlp1-gr5
 uv sync
 ```
 
-Optional (recommended on Windows if PyTorch import fails): recreate the venv with an `uv`-managed CPython:
-```powershell
-uv venv --clear --python 3.12.12 --managed-python
-uv sync
-```
-
 **Activate virtual environment:**
 
 macOS/Linux/WSL:

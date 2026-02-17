@@ -57,12 +57,3 @@ def split_dataset(train: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     dev = pd.DataFrame({"description": x_dev, "label": y_dev})
 
     return new_train, dev
-
-train, test = load_data()
-train, dev = split_dataset(train)
-
-
-
-print(f"Train size: {len(train)}")
-print(f"Dev size: {len(dev)}")
-print(f"Test size: {len(test)}")

@@ -10,6 +10,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+# Adding type annotations to debug a pandas problem
 if TYPE_CHECKING:
     PandasSeriesAny: TypeAlias = pd.Series[Any]
 else:
@@ -26,6 +27,7 @@ def train_model(
     :param model_name: The name of the model to train. Supported values are 'logistic_regression' and 'linear_svc'.
     :param X_train: The training data features as a NumPy array.
     :param y_train: The training data labels.
+    :raise ValueError: If an unsupported model name is provided.
     :return: The trained model instance.
     """
     if model_name == 'logistic_regression':
@@ -60,7 +62,15 @@ def evaluate_model(
     }
     return y_pred, metrics
 
-def plot_confusion_matrix(y_true, y_pred, title):
+def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, title: str) -> None:
+    """
+    Plot and save a confusion matrix heatmap for the given true and predicted labels.
+
+    :param y_true: The ground truth labels as a NumPy array.
+    :param y_pred: The predicted labels as a NumPy array.
+    :param title: The title for the confusion matrix plot, which will also be used as the filename when saving the plot.
+    :return: None
+    """
     cm = confusion_matrix(y_true, y_pred, normalize="true")
     
     class_labels = ["World", "Sports", "Business", "Sci/Tech"]
@@ -90,7 +100,6 @@ def collect_misclassified_samples(
     n_samples: int = 20,
     random_state: int = 1337,
     include_text: bool = True,
-    include_features: bool = False,
 ) -> pd.DataFrame:
     """
     Collect misclassified samples from the test dataset.
@@ -103,10 +112,6 @@ def collect_misclassified_samples(
     :param n_samples: Number of misclassified examples to return (default 20). If fewer exist, returns all.
     :param random_state: Seed used for sampling.
     :param include_text: When True (default), include the original text column for easier inspection.
-                         If test_df is not provided, this function will attempt to load the AG News test split
-                         from Hugging Face (`sh0416/ag_news`) and use it as the source of text.
-    :param include_features: When True, include numeric feature vectors for the misclassified rows.
-                             Defaults to False to avoid writing huge TF-IDF arrays to CSV.
     :return: A DataFrame containing misclassified samples with labels and optional text context.
     """
     # Label map for legibility
@@ -126,8 +131,6 @@ def collect_misclassified_samples(
         base_cols = ["pos", "true_label", "predicted_label"]
         if include_text:
             base_cols.append(text_column)
-        if include_features:
-            base_cols.append("features")
         return pd.DataFrame(columns=base_cols)
 
     # If n_samples is specified and there are more misclassified samples than n_samples, randomly sample n_samples indices
@@ -149,8 +152,8 @@ def collect_misclassified_samples(
     if include_text:
         resolved_test_df: pd.DataFrame | None = test_df
 
-        # If the caller didn't provide a DataFrame, try to reconstruct the AG News test split.
-        # This keeps the call-site unchanged while avoiding dumping TF-IDF vectors.
+        # If test_df is not provided, attempt to load it using the same method as in data.py 
+        # to make sure with it is aligned with X_test/y_test.
         if resolved_test_df is None:
             try:
                 from datasets import load_dataset  # type: ignore
@@ -167,7 +170,6 @@ def collect_misclassified_samples(
                 if isinstance(to_pandas_result, pd.DataFrame):
                     resolved_test_df = to_pandas_result
                 else:
-                    # Some `datasets` versions type this as an iterator of DataFrames.
                     resolved_test_df = pd.concat(list(to_pandas_result), ignore_index=True)
 
                 if text_column not in resolved_test_df.columns and "text" in resolved_test_df.columns:
@@ -175,6 +177,8 @@ def collect_misclassified_samples(
             except Exception:
                 resolved_test_df = None
 
+        # If we have a resolved test DataFrame, make sure it is aligned with X_test/y_test 
+        # and contains the expected text column before including text in the result.
         if resolved_test_df is not None:
             if len(resolved_test_df) != len(X_test):
                 raise ValueError(
@@ -186,9 +190,5 @@ def collect_misclassified_samples(
 
             result["row_index"] = resolved_test_df.index.to_numpy()[misclassified_indices]
             result[text_column] = resolved_test_df[text_column].to_numpy()[misclassified_indices]
-
-    # Optionally include numeric feature vectors (off by default).
-    if include_features:
-        result["features"] = list(X_test[misclassified_indices])
 
     return result

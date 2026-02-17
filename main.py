@@ -4,7 +4,13 @@ from src.models import train_model, evaluate_model, collect_misclassified_sample
 import json
 
 class Pipeline:
-    def __init__(self):
+    """ A class to encapsulate the entire machine learning pipeline for the AG News classification task, including data loading, preprocessing, model training, evaluation, and analysis of misclassified samples."""
+    def __init__(self) -> None:
+        """
+        Initialize the Pipeline class with placeholders for datasets, models, and evaluation results.
+
+        :return: None
+        """
         self.train = None
         self.dev = None
         self.test = None
@@ -13,7 +19,12 @@ class Pipeline:
         self.best_model = None
         self.best_model_name = None
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Execute the entire machine learning pipeline, including data loading, preprocessing, model training, evaluation, and analysis of misclassified samples.
+
+        :return: None
+        """
         # Load data
         self.train, self.test = load_data()
         
@@ -69,19 +80,22 @@ class Pipeline:
 
 
 if __name__ == "__main__":
+    # Instantiate and run the machine learning pipeline for AG News classification
     pipeline = Pipeline()
     pipeline.run()
-    # Print the head of the preprocessed train dataset
-    print(pipeline.train.head())
-    print(pipeline.X_dev[:5])
+
+    # Print evaluation metrics for both models and save them to JSON files, along with the misclassified samples for further analysis.
     print("Logistic Regression Metrics:", pipeline.lr_metrics)
     print("SVM Metrics:", pipeline.svm_metrics)
+
+    # Save metrics and misclassified samples to files for further analysis and reporting.
     with open('results/logistic_regression_metrics.json', 'w') as f:
         json.dump(pipeline.lr_metrics, f, indent=4)
 
     with open('results/svm_metrics.json', 'w') as f:
         json.dump(pipeline.svm_metrics, f, indent=4)
-    pipeline.best_misclassified.to_csv(f'results/best_model_{pipeline.best_model_name}_misclassified.csv', index=False)
 
+    # Save misclassified samples for the best performing model and both models for error analysis.
+    pipeline.best_misclassified.to_csv(f'results/best_model_{pipeline.best_model_name}_misclassified.csv', index=False)
     pipeline.lr_misclassified.to_csv('results/logistic_regression_misclassified.csv', index=False)
     pipeline.svm_misclassified.to_csv('results/svm_misclassified.csv', index=False)
