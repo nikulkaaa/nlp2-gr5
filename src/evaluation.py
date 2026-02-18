@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
 
 # Adding type annotations to debug a pandas problem
 if TYPE_CHECKING:
@@ -16,19 +18,30 @@ else:
     PandasSeriesAny: TypeAlias = pd.Series
     
 def evaluate_model(
-    model: LogisticRegression | LinearSVC,
+    model: LogisticRegression | LinearSVC | nn.Module,
     X_test: np.ndarray,
     y_test: PandasSeriesAny | np.ndarray,
 ) -> Tuple[np.ndarray, dict[str, Any]]:
     """
     Evaluate the performance of a trained model on the test dataset.
     
-    :param model: The trained machine learning model to evaluate.
+    :param model: The trained machine learning model to evaluate (sklearn or PyTorch).
     :param X_test: The test data features as a NumPy array.
     :param y_test: The test data labels.
     :return: A dictionary containing the accuracy and macro F1 score of the model on the test dataset.
     """
-    y_pred = model.predict(X_test)
+    # Check if it's a sklearn model (has predict method) or PyTorch model
+    if hasattr(model, 'predict'):
+        y_pred = model.predict(X_test)
+    else:
+        # PyTorch model
+        model.eval()
+        device = next(model.parameters()).device
+        with torch.no_grad():
+            X_test_tensor = torch.from_numpy(np.asarray(X_test)).long().to(device)
+            outputs = model(X_test_tensor)
+            y_pred = torch.argmax(outputs, dim=1).cpu().numpy()
+    
     # Convert NumPy scalars/arrays into plain Python types so metrics can be JSON-serialized.
     metrics: dict[str, Any] = {
         "accuracy": float(accuracy_score(y_test, y_pred)),
@@ -65,8 +78,45 @@ def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, title: str) ->
     plt.savefig(f"results/{title}.png")
     plt.close()
 
+def plot_learning_curves(histories: dict[str, dict], title: str = "Learning Curves") -> None:
+    """
+    Plot and save learning curves showing train and validation loss for multiple models.
+    
+    :param histories: Dictionary mapping model names to their training history dictionaries
+                     Each history dict should contain 'train_loss', 'val_loss', and optionally 'stopped_epoch'
+    :param title: The title for the plot
+    :return: None
+    """
+    fig, axes = plt.subplots(1, len(histories), figsize=(7 * len(histories), 5))
+    
+    if len(histories) == 1:
+        axes = [axes]
+    
+    for idx, (model_name, history) in enumerate(histories.items()):
+        ax = axes[idx]
+        epochs = range(1, len(history['train_loss']) + 1)
+        
+        ax.plot(epochs, history['train_loss'], 'b-', label='Train Loss', linewidth=2)
+        if history['val_loss']:
+            ax.plot(epochs, history['val_loss'], 'r-', label='Val Loss', linewidth=2)
+        
+        # Mark early stopping point if it occurred
+        if history.get('stopped_epoch') is not None:
+            ax.axvline(x=history['stopped_epoch'], color='green', linestyle='--', 
+                      label=f'Early Stop (epoch {history["stopped_epoch"]})', linewidth=2)
+        
+        ax.set_xlabel('Epoch', fontsize=12)
+        ax.set_ylabel('Loss', fontsize=12)
+        ax.set_title(f'{model_name} Learning Curve', fontsize=14, fontweight='bold')
+        ax.legend(loc='best')
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(f"results/{title}.png", dpi=150)
+    plt.close()
+
 def collect_misclassified_samples(
-    model: LogisticRegression | LinearSVC,
+    model: LogisticRegression | LinearSVC | nn.Module,
     X_test: np.ndarray,
     y_test: PandasSeriesAny | np.ndarray,
     *,
@@ -79,7 +129,7 @@ def collect_misclassified_samples(
     """
     Collect misclassified samples from the test dataset.
 
-    :param model: The trained machine learning model to evaluate.
+    :param model: The trained machine learning model to evaluate (sklearn or PyTorch).
     :param X_test: The test data features as a NumPy array.
     :param y_test: The test data labels.
     :param test_df: Optional DataFrame aligned with X_test/y_test; when provided, includes text for inspection.
@@ -89,14 +139,20 @@ def collect_misclassified_samples(
     :param include_text: When True (default), include the original text column for easier inspection.
     :return: A DataFrame containing misclassified samples with labels and optional text context.
     """
-    # Label map for legibility
-    label_map = {1: "World", 2: "Sports", 3: "Business", 4: "Sci/Tech"}
-
-    # Label map for legibility
-    label_map = {1: "World", 2: "Sports", 3: "Business", 4: "Sci/Tech"}
+    # Label map for legibility (0-indexed)
+    label_map = {0: "World", 1: "Sports", 2: "Business", 3: "Sci/Tech"}
 
     # Predict labels for the test set
-    y_pred = model.predict(X_test)
+    if hasattr(model, 'predict'):
+        y_pred = model.predict(X_test)
+    else:
+        # PyTorch model
+        model.eval()
+        device = next(model.parameters()).device
+        with torch.no_grad():
+            X_test_tensor = torch.from_numpy(np.asarray(X_test)).long().to(device)
+            outputs = model(X_test_tensor)
+            y_pred = torch.argmax(outputs, dim=1).cpu().numpy()
 
     # Convert y_test to a NumPy array if it's a Pandas Series, ensuring alignment with y_pred
     y_true = y_test.to_numpy() if isinstance(y_test, pd.Series) else np.asarray(y_test)

@@ -115,6 +115,13 @@ def train_model(
     best_val_loss = float('inf')
     epochs_no_improve = 0
     best_model_state = None
+    
+    # Track training history
+    history = {
+        'train_loss': [],
+        'val_loss': [],
+        'stopped_epoch': None
+    }
 
     # Training loop for the specified number of epochs
     for epoch in range(epochs):
@@ -133,6 +140,7 @@ def train_model(
             total_loss += loss.item()
 
         avg_train_loss = total_loss / len(train_loader)
+        history['train_loss'].append(avg_train_loss)
         
         # Validation and early stopping
         if X_val is not None and y_val is not None:
@@ -143,6 +151,7 @@ def train_model(
                 val_outputs = model(X_val_tensor)
                 val_loss = criterion(val_outputs, y_val_tensor).item()
             
+            history['val_loss'].append(val_loss)
             print(f"Epoch {epoch+1}/{epochs} - Train Loss: {avg_train_loss:.4f} - Val Loss: {val_loss:.4f}")
             
             # Check for improvement
@@ -154,9 +163,10 @@ def train_model(
                 epochs_no_improve += 1
                 if epochs_no_improve >= patience:
                     print(f"Early stopping triggered after {epoch+1} epochs")
+                    history['stopped_epoch'] = epoch + 1
                     model.load_state_dict(best_model_state)
                     break
         else:
             print(f"Epoch {epoch+1}/{epochs} - Loss: {avg_train_loss:.4f}")
 
-    return model
+    return model, history
