@@ -89,7 +89,7 @@ def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, title: str) ->
     plt.tight_layout()
     plt.savefig(f"results/{title}.png")
     plt.close()
-    
+
 def collect_misclassified_samples(
     model: LogisticRegression | LinearSVC,
     X_test: np.ndarray,
@@ -114,6 +114,9 @@ def collect_misclassified_samples(
     :param include_text: When True (default), include the original text column for easier inspection.
     :return: A DataFrame containing misclassified samples with labels and optional text context.
     """
+    # Label map for legibility
+    label_map = {1: "World", 2: "Sports", 3: "Business", 4: "Sci/Tech"}
+
     # Label map for legibility
     label_map = {1: "World", 2: "Sports", 3: "Business", 4: "Sci/Tech"}
 
@@ -143,6 +146,8 @@ def collect_misclassified_samples(
     result = pd.DataFrame(
         {
             "pos": misclassified_indices,
+            "true_label": [label_map[label] for label in y_true[misclassified_indices]],
+            "predicted_label": [label_map[label] for label in y_pred[misclassified_indices]],
             "true_label": [label_map[label] for label in y_true[misclassified_indices]],
             "predicted_label": [label_map[label] for label in y_pred[misclassified_indices]],
         }
