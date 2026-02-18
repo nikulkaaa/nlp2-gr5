@@ -1,5 +1,5 @@
 from src.data import load_data, split_dataset
-from src.preprocessing import preprocess_data, feature_engineering_tf_text_vectorization
+from src.preprocessing import preprocess_data, feature_engineering
 from src.models import train_model
 from src.evaluation import evaluate_model, collect_misclassified_samples, plot_confusion_matrix
 import json
@@ -36,21 +36,22 @@ class Pipeline:
         self.test = preprocess_data(self.test)
 
         # Maximum number of tokens to consider in the vocabulary
-        max_tokens = 20000 
+        max_tokens = 10000  # Reduced from 20000 for faster training
         # Maximum length of the output sequence after vectorization (padding/truncating)
         output_sequence_length = 128
         # Dimensionality of the embedding layer
         embed_dim = 64
 
         # Feature engineering using TF Text Vectorization
-        self.X_train, vectorizer = feature_engineering_tf_text_vectorization(self.train, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length)
-        self.y_train = self.train['label'].values - 1  # Convert from 1-indexed to 0-indexed
+        self.X_train, vocab = feature_engineering(self.train, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length)
+         # Convert from 1-indexed to 0-indexed
+        self.y_train = self.train['label'].values - 1
 
-        self.X_dev = feature_engineering_tf_text_vectorization(self.dev, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length, vectorizer=vectorizer)
-        self.y_dev = self.dev['label'].values - 1  # Convert from 1-indexed to 0-indexed
+        self.X_dev, _ = feature_engineering(self.dev, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length, vocab=vocab)
+        self.y_dev = self.dev['label'].values - 1
 
-        self.X_test = feature_engineering_tf_text_vectorization(self.test, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length, vectorizer=vectorizer)
-        self.y_test = self.test['label'].values - 1  # Convert from 1-indexed to 0-indexed
+        self.X_test, _ = feature_engineering(self.test, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length, vocab=vocab)
+        self.y_test = self.test['label'].values - 1
 
         print("First 5 rows of the training set after feature engineering: \n", self.X_train[:5])
         print(f"\nTraining on {len(self.X_train)} samples with validation on {len(self.X_dev)} samples...")
