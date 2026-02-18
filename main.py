@@ -1,6 +1,7 @@
 from src.data import load_data, split_dataset
 from src.preprocessing import preprocess_data, feature_engineering_tfidf
-from src.models import train_model, evaluate_model, collect_misclassified_samples, plot_confusion_matrix
+from src.models import train_model
+from src.evaluation import evaluate_model, collect_misclassified_samples, plot_confusion_matrix
 import json
 
 class Pipeline:
