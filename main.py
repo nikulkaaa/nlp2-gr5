@@ -1,5 +1,5 @@
 from src.data import load_data, split_dataset
-from src.preprocessing import preprocess_data, feature_engineering_tfidf
+from src.preprocessing import preprocess_data, feature_engineering_tf_text_vectorization
 from src.models import train_model
 from src.evaluation import evaluate_model, collect_misclassified_samples, plot_confusion_matrix
 import json
@@ -15,10 +15,8 @@ class Pipeline:
         self.train = None
         self.dev = None
         self.test = None
-        self.logistic_regression = None
-        self.svm = None
-        self.best_model = None
-        self.best_model_name = None
+        self.CNN = None
+        self.LSTM = None
 
     def run(self) -> None:
         """
@@ -37,47 +35,58 @@ class Pipeline:
         self.dev = preprocess_data(self.dev)
         self.test = preprocess_data(self.test)
 
-        # Feature engineering using TF-IDF
-        self.X_train, vectorizer = feature_engineering_tfidf(self.train, column_name="description")
-        self.y_train = self.train['label']
+        # Maximum number of tokens to consider in the vocabulary
+        max_tokens = 20000 
+        # Maximum length of the output sequence after vectorization (padding/truncating)
+        output_sequence_length = 128
+        # Dimensionality of the embedding layer
+        embed_dim = 64
 
-        self.X_dev = feature_engineering_tfidf(self.dev, column_name="description", vectorizer=vectorizer)
-        self.y_dev = self.dev['label']
+        # Feature engineering using TF Text Vectorization
+        self.X_train, vectorizer = feature_engineering_tf_text_vectorization(self.train, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length)
+        self.y_train = self.train['label'].values - 1  # Convert from 1-indexed to 0-indexed
 
-        self.X_test = feature_engineering_tfidf(self.test, column_name="description", vectorizer=vectorizer)
-        self.y_test = self.test['label']
+        self.X_dev = feature_engineering_tf_text_vectorization(self.dev, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length, vectorizer=vectorizer)
+        self.y_dev = self.dev['label'].values - 1  # Convert from 1-indexed to 0-indexed
 
-        # Train logistic regression model
-        self.logistic_regression = train_model('logistic_regression', self.X_train, self.y_train)
-        # Train SVM model
-        self.svm = train_model('linear_svm', self.X_train, self.y_train)
+        self.X_test = feature_engineering_tf_text_vectorization(self.test, column_name="description", max_tokens=max_tokens, output_sequence_length=output_sequence_length, vectorizer=vectorizer)
+        self.y_test = self.test['label'].values - 1  # Convert from 1-indexed to 0-indexed
 
-        # Evaluate models on the test set
-        self.lr_predictions, self.lr_metrics = evaluate_model(self.logistic_regression, self.X_test, self.y_test)
-        self.svm_predictions, self.svm_metrics = evaluate_model(self.svm, self.X_test, self.y_test)
+        print("First 5 rows of the training set after feature engineering: \n", self.X_train[:5])
+        print(f"\nTraining on {len(self.X_train)} samples with validation on {len(self.X_dev)} samples...")
 
-        # Read which model performed better based on the macro_f1 metric
-        self.best_model = self.logistic_regression if self.lr_metrics['macro_f1'] > self.svm_metrics['macro_f1'] else self.svm
-        self.best_model_name = "lr" if self.lr_metrics['macro_f1'] > self.svm_metrics['macro_f1'] else "svm"
+        # Train CNN model with larger batch size for faster training, using dev set for validation
+        self.CNN = train_model('cnn', self.X_train, self.y_train, X_val=self.X_dev, y_val=self.y_dev, vocab_size=max_tokens, embed_dim=embed_dim, epochs=1, batch_size=256)
+        # Train LSTM model with larger batch size for faster training, using dev set for validation
+        self.LSTM = train_model('lstm', self.X_train, self.y_train, X_val=self.X_dev, y_val=self.y_dev, vocab_size=max_tokens, embed_dim=embed_dim, epochs=1, batch_size=256)
 
-        # Collect misclassified samples on the best performing model
-        self.best_misclassified = collect_misclassified_samples(self.best_model, self.X_test, self.y_test, n_samples =10)
+        print("CNN and LSTM models trained successfully.")
+        # # Evaluate models on the test set
+        # self.CNN_predictions, self.CNN_metrics = evaluate_model(self.CNN, self.X_test, self.y_test)
+        # self.LSTM_predictions, self.LSTM_metrics = evaluate_model(self.LSTM, self.X_test, self.y_test)
 
-        # Collect misclassified for both models for creation of error categories
-        self.lr_misclassified = collect_misclassified_samples(self.logistic_regression, self.X_test, self.y_test, n_samples=20)
-        self.svm_misclassified = collect_misclassified_samples(self.svm, self.X_test, self.y_test, n_samples=20)
+        # # Read which model performed better based on the macro_f1 metric (dont think this is necessary)
+        # # self.best_model = self.logistic_regression if self.lr_metrics['macro_f1'] > self.svm_metrics['macro_f1'] else self.svm
+        # # self.best_model_name = "lr" if self.lr_metrics['macro_f1'] > self.svm_metrics['macro_f1'] else "svm"
 
-        self.predictions = {
-            "Logistic Regression": pipeline.lr_predictions,
-            "Linear SVM": pipeline.svm_predictions
-        }
+        # # Collect misclassified samples on the best performing model
+        # # self.best_misclassified = collect_misclassified_samples(self.best_model, self.X_test, self.y_test, n_samples =10)
+
+        # # Collect misclassified for both models for creation of error categories
+        # self.CNN_misclassified = collect_misclassified_samples(self.CNN, self.X_test, self.y_test, n_samples=10)
+        # self.LSTM_misclassified = collect_misclassified_samples(self.LSTM, self.X_test, self.y_test, n_samples=10)
+
+        # self.predictions = {
+        #     "CNN": pipeline.CNN_predictions,
+        #     "LSTM": pipeline.LSTM_predictions
+        # }
         
-        for model_name, y_pred in self.predictions.items():
-            plot_confusion_matrix(
-                pipeline.y_test, 
-                y_pred, 
-                f"Confusion Matrix – {model_name}"
-            )
+        # for model_name, y_pred in self.predictions.items():
+        #     plot_confusion_matrix(
+        #         pipeline.y_test, 
+        #         y_pred, 
+        #         f"Confusion Matrix – {model_name}"
+        #     )
 
 
 if __name__ == "__main__":
@@ -85,18 +94,18 @@ if __name__ == "__main__":
     pipeline = Pipeline()
     pipeline.run()
 
-    # Print evaluation metrics for both models and save them to JSON files, along with the misclassified samples for further analysis.
-    print("Logistic Regression Metrics:", pipeline.lr_metrics)
-    print("SVM Metrics:", pipeline.svm_metrics)
+    # # Print evaluation metrics for both models and save them to JSON files, along with the misclassified samples for further analysis.
+    # print("CNN Metrics:", pipeline.CNN_metrics)
+    # print("LSTM Metrics:", pipeline.LSTM_metrics)
 
-    # Save metrics and misclassified samples to files for further analysis and reporting.
-    with open('results/logistic_regression_metrics.json', 'w') as f:
-        json.dump(pipeline.lr_metrics, f, indent=4)
+    # # Save metrics and misclassified samples to files for further analysis and reporting.
+    # with open('results/cnn_metrics.json', 'w') as f:
+    #     json.dump(pipeline.CNN_metrics, f, indent=4)
 
-    with open('results/svm_metrics.json', 'w') as f:
-        json.dump(pipeline.svm_metrics, f, indent=4)
+    # with open('results/lstm_metrics.json', 'w') as f:
+    #     json.dump(pipeline.LSTM_metrics, f, indent=4)
 
-    # Save misclassified samples for the best performing model and both models for error analysis.
-    pipeline.best_misclassified.to_csv(f'results/best_model_{pipeline.best_model_name}_misclassified.csv', index=False)
-    pipeline.lr_misclassified.to_csv('results/logistic_regression_misclassified.csv', index=False)
-    pipeline.svm_misclassified.to_csv('results/svm_misclassified.csv', index=False)
+    # # Save misclassified samples for the best performing model and both models for error analysis.
+    # pipeline.best_misclassified.to_csv(f'results/best_model_{pipeline.best_model_name}_misclassified.csv', index=False)
+    # pipeline.CNN_misclassified.to_csv('results/CNN_misclassified.csv', index=False)
+    # pipeline.LSTM_misclassified.to_csv('results/LSTM_misclassified.csv', index=False)
