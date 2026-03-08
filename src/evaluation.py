@@ -83,7 +83,6 @@ def plot_learning_curves(histories: dict[str, dict], title: str = "Learning Curv
     Plot and save learning curves showing train and validation loss for multiple models.
     
     :param histories: Dictionary mapping model names to their training history dictionaries
-                     Each history dict should contain 'train_loss', 'val_loss', and optionally 'stopped_epoch'
     :param title: The title for the plot
     :return: None
     """

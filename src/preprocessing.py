@@ -93,7 +93,17 @@ def feature_engineering(
     max_tokens: int = 20000,
     output_sequence_length: int = 128,
     vocab: dict | None = None,
-):
+) -> tuple[np.ndarray, dict[str, int]]:
+    """
+    Perform feature engineering on the input dataset by building a vocabulary from the specified column of token lists, encoding the token lists into integer indices, and padding/truncating the sequences to a specified length.
+    
+    :param dataset: A pandas DataFrame containing a column with token lists to be processed
+    :param column_name: The name of the column in the dataset that contains the token lists to be processed
+    :param max_tokens: The maximum number of tokens to include in the vocabulary (including special tokens)
+    :param output_sequence_length: The maximum length of each sequence after encoding and padding/truncating
+    :param vocab: An optional pre-built vocabulary dictionary mapping tokens to integer indices; if None, a new vocabulary will be built from the dataset
+    :return: A tuple containing a 2D numpy array of encoded and padded sequences, and the vocabulary dictionary used for encoding
+    """
     token_lists = dataset["tokens"].tolist()
 
     if vocab is None:
