@@ -6,7 +6,7 @@ import json
 
 class Pipeline:
     """ A class to encapsulate the entire machine learning pipeline for the AG News classification task, including data loading, preprocessing, model training, evaluation, and analysis of misclassified samples."""
-    def __init__(self, max_tokens:int=10000) -> None:
+    def __init__(self, max_length:int=128) -> None:
         """
         Initialize the Pipeline class with placeholders for datasets, models, and evaluation results.
 
@@ -17,7 +17,8 @@ class Pipeline:
         self.test = None
         self.CNN = None
         self.LSTM = None
-        self.max_tokens = max_tokens
+        self.max_tokens = 10000
+        self.max_length = max_length
 
     def run(self) -> None:
         """
@@ -30,7 +31,7 @@ class Pipeline:
         
         # Split dataset
         self.train, self.dev = split_dataset(self.train)
-        print(f"Loaded data for pipeline {self.max_tokens}")
+        print(f"Loaded data for pipeline {self.max_length}")
         
         # Preprocess data
         self.train = preprocess_data(self.train)
@@ -38,7 +39,7 @@ class Pipeline:
         self.test = preprocess_data(self.test)
 
         # Maximum length of the output sequence after vectorization (padding/truncating)
-        output_sequence_length = 128
+        output_sequence_length = self.max_length
         # Dimensionality of the embedding layer
         embed_dim = 64
 
@@ -57,13 +58,13 @@ class Pipeline:
         self.X_test, _ = feature_engineering(self.test, column_name="description", max_tokens=self.max_tokens, output_sequence_length=output_sequence_length, vocab=vocab)
         self.y_test = self.test['label'].values - 1
 
-        print(f"Starting training for pipeline {self.max_tokens}")
+        print(f"Starting training for pipeline {self.max_length}")
         # Train CNN model with larger batch size for faster training, using dev set for validation
         self.CNN, self.CNN_history = train_model('cnn', self.X_train, self.y_train, X_val=self.X_dev, y_val=self.y_dev, vocab_size=self.max_tokens, embed_dim=embed_dim, epochs=epochs, batch_size=256)
         # Train LSTM model with larger batch size for faster training, using dev set for validation
         self.LSTM, self.LSTM_history = train_model('lstm', self.X_train, self.y_train, X_val=self.X_dev, y_val=self.y_dev, vocab_size=self.max_tokens, embed_dim=embed_dim, epochs=epochs, batch_size=256)
 
-        print(f"Starting evaluation for pipeline {self.max_tokens}")
+        print(f"Starting evaluation for pipeline {self.max_length}")
         # Evaluate models on the test set
         self.CNN_predictions, self.CNN_metrics = evaluate_model(self.CNN, self.X_test, self.y_test)
         self.LSTM_predictions, self.LSTM_metrics = evaluate_model(self.LSTM, self.X_test, self.y_test)
@@ -88,27 +89,27 @@ class Pipeline:
             plot_confusion_matrix(
                 self.y_test, 
                 y_pred, 
-                f"Confusion Matrix – {model_name}, Max Length={self.max_tokens}"
+                f"Confusion Matrix – {model_name}, Max Length={self.max_length}"
             )
         
         # Plot learning curves for both models
         plot_learning_curves(
             {"CNN": self.CNN_history, "LSTM": self.LSTM_history},
-            title=f"Learning Curves – max_tokens={self.max_tokens}", 
-            max_tokens=self.max_tokens
+            title=f"Learning Curves – max_length={self.max_length}", 
+            max_tokens=self.max_length
         )
 
-def ablation_study(max_tokens:int) -> None:
+def ablation_study(max_length:int) -> None:
     """
-    Conduct an ablation study by running the pipeline with different maximum token limits for the text vectorization step, and save the results for analysis.
+    Conduct an ablation study by running the pipeline with different maximum sequence lengths for the text vectorization step, and save the results for analysis.
 
-    :param max_tokens: The maximum number of tokens to consider in the text vectorization step (e.g., 64, 128, 256, 1000).
+    :param max_length: The maximum sequence length (number of tokens) after padding/truncating (e.g., 64, 128, 256).
     :return: None
     """
-    pipeline = Pipeline(max_tokens=max_tokens)
+    pipeline = Pipeline(max_length=max_length)
     pipeline.run()
-    # Save metrics for ablation study with max_tokens
-    with open(f'results/ablation_max_tokens_{max_tokens}.json', 'w') as f:
+    # Save metrics for ablation study with max_length
+    with open(f'results/ablation_max_length_{max_length}.json', 'w') as f:
         json.dump({
             "CNN": pipeline.CNN_metrics,
             "LSTM": pipeline.LSTM_metrics
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     pipeline.CNN_misclassified.to_csv('results/CNN_misclassified.csv', index=False)
     pipeline.LSTM_misclassified.to_csv('results/LSTM_misclassified.csv', index=False)
 
-    # Conduct an ablation study by running the pipeline with different maximum token limits for the text vectorization step, and save the results for analysis.
-    for max_tokens in [64, 128, 256, 1000]:
-        ablation_study(max_tokens)
+    # Conduct an ablation study by running the pipeline with different maximum sequence lengths for the text vectorization step, and save the results for analysis.
+    for max_length in [64, 128, 256]:
+        ablation_study(max_length)
     

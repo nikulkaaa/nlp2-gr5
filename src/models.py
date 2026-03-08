@@ -145,11 +145,21 @@ def train_model(
         # Validation and early stopping
         if X_val is not None and y_val is not None:
             model.eval()
+            val_loader = DataLoader(
+                TensorDataset(
+                    torch.from_numpy(np.asarray(X_val)).long(),
+                    torch.from_numpy(np.asarray(y_val)).long(),
+                ),
+                batch_size=batch_size,
+                shuffle=False,
+            )
+            total_val_loss = 0
             with torch.no_grad():
-                X_val_tensor = torch.from_numpy(np.asarray(X_val)).long().to(device)
-                y_val_tensor = torch.from_numpy(np.asarray(y_val)).long().to(device)
-                val_outputs = model(X_val_tensor)
-                val_loss = criterion(val_outputs, y_val_tensor).item()
+                for val_x, val_y in val_loader:
+                    val_x, val_y = val_x.to(device), val_y.to(device)
+                    val_outputs = model(val_x)
+                    total_val_loss += criterion(val_outputs, val_y).item()
+            val_loss = total_val_loss / len(val_loader)
             
             history['val_loss'].append(val_loss)
             print(f"Epoch {epoch+1}/{epochs} - Train Loss: {avg_train_loss:.4f} - Val Loss: {val_loss:.4f}")
