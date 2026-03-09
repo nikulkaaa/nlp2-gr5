@@ -144,6 +144,6 @@ if __name__ == "__main__":
     pipeline.LSTM_misclassified.to_csv('results/LSTM_misclassified.csv', index=False)
 
     # Conduct an ablation study by running the pipeline with different maximum sequence lengths for the text vectorization step, and save the results for analysis.
-    for max_length in [64, 128, 256]:
+    for max_length in [10, 20, 30, 64, 128]:
         ablation_study(max_length)
     
